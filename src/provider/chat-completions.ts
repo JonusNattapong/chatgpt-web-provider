@@ -33,7 +33,9 @@ export function chatCompletionsToResponses(raw: unknown): Record<string, unknown
   const body = record(raw);
   if (!body) throw new Error("Request body must be a JSON object");
   if (!Array.isArray(body.messages) || body.messages.length === 0) throw new Error("messages must be a non-empty array");
-  if (Array.isArray(body.tools) && body.tools.length > 0) throw new Error("Generic tool execution is not enabled in provider v1");
+  if (body.tool_choice && body.tool_choice !== "none" && body.tool_choice !== "auto") {
+    throw new Error("tool_choice other than 'none' or 'auto' is not supported in provider v1");
+  }
   if (body.n !== undefined && body.n !== 1) throw new Error("Provider v1 supports only n=1");
   for (const field of ["functions", "function_call", "logprobs", "response_format"]) {
     if (body[field] !== undefined) throw new Error(`Provider v1 does not support ${field}`);

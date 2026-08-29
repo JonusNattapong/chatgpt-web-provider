@@ -106,6 +106,21 @@ describe("OpenAI compatibility surfaces", () => {
     expect(body.choices[0]?.message.content).toBe("provider ready");
   });
 
+  test("accepts Chat Completions with client tools and returns text response", async () => {
+    const response = await providerChatCompletionsRequest(new Request("http://127.0.0.1/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: "chatgpt-web/luna",
+        messages: [{ role: "user", content: "hello" }],
+        tools: [{ type: "function", function: { name: "Bash", description: "Execute bash" } }],
+      }),
+    }), appConfig(), fakeAdapter as any);
+    expect(response.status).toBe(200);
+    const body = await response.json() as { choices: Array<{ message: { content: string } }> };
+    expect(body.choices[0]?.message.content).toBe("provider ready");
+  });
+
   test("translates Responses SSE into Chat Completions chunks", async () => {
     const response = await providerChatCompletionsRequest(new Request("http://127.0.0.1/v1/chat/completions", {
       method: "POST",
