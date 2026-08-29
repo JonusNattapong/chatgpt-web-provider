@@ -16,6 +16,19 @@ export function providerModels(config: AppConfig): Record<string, unknown> {
   const routes = availableChatGptWebModelRoutes(capabilities);
   const data: Array<Record<string, unknown>> = [];
 
+  for (const route of routes) {
+    data.push({
+      id: route.slug,
+      object: "model",
+      created: 0,
+      owned_by: "chatgpt-web-provider",
+      name: route.displayName,
+      description: route.description.replace(" through the native Codex harness", ""),
+      input_modalities: ["text", "image"],
+      ...resolveChatGptWebContextLimits(route.backendModel, route.adapterEffort, capabilities),
+    });
+  }
+
   if (capabilities.solAvailable) {
     data.push({
       id: "sol",
@@ -89,19 +102,6 @@ export function providerModels(config: AppConfig): Record<string, unknown> {
       description: "ChatGPT Free model with rolling checkpoints.",
       input_modalities: ["text", "image"],
       ...resolveChatGptWebContextLimits(CHATGPT_WEB_LUNA_BACKEND_MODEL, "low", capabilities),
-    });
-  }
-
-  for (const route of routes) {
-    data.push({
-      id: route.slug,
-      object: "model",
-      created: 0,
-      owned_by: "chatgpt-web-provider",
-      name: route.displayName,
-      description: route.description.replace(" through the native Codex harness", ""),
-      input_modalities: ["text", "image"],
-      ...resolveChatGptWebContextLimits(route.backendModel, route.adapterEffort, capabilities),
     });
   }
 

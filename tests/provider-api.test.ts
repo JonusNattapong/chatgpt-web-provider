@@ -83,14 +83,14 @@ describe("generic provider request contract", () => {
 describe("OpenAI compatibility surfaces", () => {
   test("publishes an account-bounded model catalog without native Codex passthrough", () => {
     const catalog = providerModels(appConfig()) as { data: Array<{ id: string }> };
-    expect(catalog.data.map(model => model.id)).toEqual(["luna", "chatgpt-web/luna"]);
+    expect(catalog.data.map(model => model.id)).toEqual(["chatgpt-web/luna", "luna"]);
 
     const solConfig = appConfig();
     solConfig.solAvailable = true;
     const solCatalog = providerModels(solConfig) as { data: Array<{ id: string }> };
     expect(solCatalog.data.map(model => model.id)).toEqual([
-      "sol", "sol-high", "sol-medium", "sol-low", "terra",
-      "chatgpt-web/light", "chatgpt-web/medium", "chatgpt-web/high"
+      "chatgpt-web/instant", "chatgpt-web/medium", "chatgpt-web/high",
+      "sol", "sol-high", "sol-medium", "sol-low", "terra"
     ]);
   });
 
@@ -102,6 +102,12 @@ describe("OpenAI compatibility surfaces", () => {
     });
     expect(mapped.input).toHaveLength(2);
     expect(mapped.model).toBe("chatgpt-web/high");
+
+    const mappedInstant = chatCompletionsToResponses({
+      model: "ChatGPT Web — Instant",
+      messages: [{ role: "user", content: "hello" }],
+    });
+    expect(mappedInstant.model).toBe("chatgpt-web/instant");
 
     const mappedTerra = chatCompletionsToResponses({
       model: "terra",

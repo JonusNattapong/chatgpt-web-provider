@@ -174,9 +174,19 @@ export const CHATGPT_WEB_LUNA_MODEL_ROUTE: ChatGptWebModelRoute = {
  * effort. Pro uses Codex's `ultra` protocol value but binds explicitly to ChatGPT Pro (`max`) at
  * the adapter boundary.
  */
+export const CHATGPT_WEB_LIGHT_MODEL_ROUTE: ChatGptWebModelRoute = {
+  slug: "chatgpt-web/light",
+  displayName: "ChatGPT Web — Instant",
+  description: "ChatGPT Web Instant through the native Codex harness.",
+  backendModel: CHATGPT_WEB_BACKEND_MODEL,
+  codexEffort: "low",
+  adapterEffort: "low",
+  requiresPro: false,
+};
+
 export const CHATGPT_WEB_MODEL_ROUTES: readonly ChatGptWebModelRoute[] = [
   {
-    slug: "chatgpt-web/light",
+    slug: "chatgpt-web/instant",
     displayName: "ChatGPT Web — Instant",
     description: "ChatGPT Web Instant through the native Codex harness.",
     backendModel: CHATGPT_WEB_BACKEND_MODEL,
@@ -223,17 +233,65 @@ export const CHATGPT_WEB_MODEL_ROUTES: readonly ChatGptWebModelRoute[] = [
 ];
 
 const routesBySlug = new Map(
-  [CHATGPT_WEB_LUNA_MODEL_ROUTE, ...CHATGPT_WEB_MODEL_ROUTES].map(route => [route.slug, route]),
+  [CHATGPT_WEB_LUNA_MODEL_ROUTE, CHATGPT_WEB_LIGHT_MODEL_ROUTE, ...CHATGPT_WEB_MODEL_ROUTES].map(route => [route.slug, route]),
 );
 
 export function canonicalizeModelSlug(modelId: unknown, reasoningEffort?: unknown): string {
   if (typeof modelId !== "string") return "chatgpt-web/medium";
-  const normalized = modelId.toLowerCase().trim();
+  const normalized = modelId.toLowerCase().trim().replace(/[—–]/g, "-").replace(/\s+/g, " ");
   const effort = typeof reasoningEffort === "string" ? reasoningEffort.toLowerCase().trim() : undefined;
+
+  // Exact names and aliases matching screenshot:
+  if (
+    normalized === "chatgpt web - instant" ||
+    normalized === "chatgpt-web - instant" ||
+    normalized === "chatgpt-web/instant" ||
+    normalized === "chatgpt-web/light" ||
+    normalized === "instant" ||
+    normalized === "light"
+  ) {
+    return "chatgpt-web/instant";
+  }
+  if (
+    normalized === "chatgpt web - medium" ||
+    normalized === "chatgpt-web - medium" ||
+    normalized === "chatgpt-web/medium" ||
+    normalized === "medium"
+  ) {
+    return "chatgpt-web/medium";
+  }
+  if (
+    normalized === "chatgpt web - high" ||
+    normalized === "chatgpt-web - high" ||
+    normalized === "chatgpt-web/high" ||
+    normalized === "high"
+  ) {
+    return "chatgpt-web/high";
+  }
+  if (
+    normalized === "chatgpt web - extra high" ||
+    normalized === "chatgpt-web - extra high" ||
+    normalized === "chatgpt web - extra-high" ||
+    normalized === "chatgpt-web/extra-high" ||
+    normalized === "chatgpt-web/xhigh" ||
+    normalized === "extra-high" ||
+    normalized === "extra high" ||
+    normalized === "xhigh"
+  ) {
+    return "chatgpt-web/extra-high";
+  }
+  if (
+    normalized === "chatgpt web - pro" ||
+    normalized === "chatgpt-web - pro" ||
+    normalized === "chatgpt-web/pro" ||
+    normalized === "pro"
+  ) {
+    return "chatgpt-web/pro";
+  }
 
   // Sol base model with dynamic effort
   if (normalized === "sol" || normalized === "chatgpt-web/sol") {
-    if (effort === "low" || effort === "instant" || effort === "light") return "chatgpt-web/light";
+    if (effort === "low" || effort === "instant" || effort === "light") return "chatgpt-web/instant";
     if (effort === "high") return "chatgpt-web/high";
     if (effort === "xhigh" || effort === "extra-high") return "chatgpt-web/extra-high";
     if (effort === "max" || effort === "pro" || effort === "ultra") return "chatgpt-web/pro";
@@ -242,7 +300,7 @@ export function canonicalizeModelSlug(modelId: unknown, reasoningEffort?: unknow
 
   // Sol with explicit effort in name
   if (normalized === "sol-low" || normalized === "sol:low" || normalized === "sol-light" || normalized === "sol-instant") {
-    return "chatgpt-web/light";
+    return "chatgpt-web/instant";
   }
   if (normalized === "sol-medium" || normalized === "sol:medium" || normalized === "sol-mid") {
     return "chatgpt-web/medium";
@@ -260,11 +318,11 @@ export function canonicalizeModelSlug(modelId: unknown, reasoningEffort?: unknow
   // Terra aliases
   if (normalized === "terra" || normalized === "chatgpt-web/terra") {
     if (effort === "high") return "chatgpt-web/high";
-    if (effort === "low" || effort === "instant") return "chatgpt-web/light";
+    if (effort === "low" || effort === "instant") return "chatgpt-web/instant";
     return "chatgpt-web/medium";
   }
   if (normalized === "terra-high" || normalized === "terra:high") return "chatgpt-web/high";
-  if (normalized === "terra-low" || normalized === "terra:low") return "chatgpt-web/light";
+  if (normalized === "terra-low" || normalized === "terra:low") return "chatgpt-web/instant";
 
   // Luna aliases
   if (normalized === "luna" || normalized === "chatgpt-web/luna") {
