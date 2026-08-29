@@ -11,6 +11,7 @@ coverage/
 storage-state.json
 runtime/
 .launcher-runtime/
+.runtime-cache/
 launcher/build/
 launcher/release/
 launcher/artifacts/

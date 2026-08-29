@@ -54,6 +54,19 @@ if (!build.success) {
   throw new Error(`Runtime bundle failed: ${build.logs.map(log => log.message).join("; ")}`);
 }
 
+const providerBuild = await Bun.build({
+  entrypoints: [join(root, "src", "provider-cli.ts")],
+  target: "bun",
+  minify: true,
+  external: ["playwright-core"],
+  packages: "external",
+  outdir: appDir,
+  naming: "provider-cli.js",
+});
+if (!providerBuild.success) {
+  throw new Error(`Provider runtime bundle failed: ${providerBuild.logs.map(log => log.message).join("; ")}`);
+}
+
 const browserHelperBuild = await Bun.build({
   entrypoints: [join(root, "src", "adapters", "chatgpt-web", "browser-helper-main.ts")],
   target: "node",
@@ -112,9 +125,28 @@ exec "$root/runtime/bun" "$root/app/cli.js" "$@"
 writeFileSync(join(binDir, launcherName), launcher, process.platform === "win32" ? undefined : { mode: 0o755 });
 if (process.platform !== "win32") chmodSync(join(binDir, launcherName), 0o755);
 
+const providerLauncherName = process.platform === "win32" ? "chatgpt-web-provider.cmd" : "chatgpt-web-provider";
+const providerLauncher = process.platform === "win32" ? `@echo off
+setlocal
+chcp 65001 >nul
+set "ROOT=%~dp0.."
+"%ROOT%\\runtime\\bun.exe" "%ROOT%\\app\\provider-cli.js" %*
+` : `#!/bin/sh
+set -eu
+bin_dir="$(CDPATH= cd -- "$(dirname "$0")" && pwd -P)"
+root="$(CDPATH= cd -- "$bin_dir/.." && pwd -P)"
+exec "$root/runtime/bun" "$root/app/provider-cli.js" "$@"
+`;
+writeFileSync(
+  join(binDir, providerLauncherName),
+  providerLauncher,
+  process.platform === "win32" ? undefined : { mode: 0o755 },
+);
+if (process.platform !== "win32") chmodSync(join(binDir, providerLauncherName), 0o755);
+
 const playwrightPackage = join(appDir, "node_modules", "playwright-core", "package.json");
 const bundleId = createHash("sha256");
-for (const relativePath of ["app/cli.js", "app/browser-helper.cjs", "app/package.json", "app/bun.lock"]) {
+for (const relativePath of ["app/cli.js", "app/provider-cli.js", "app/browser-helper.cjs", "app/package.json", "app/bun.lock"]) {
   bundleId.update(relativePath);
   bundleId.update("\0");
   bundleId.update(readFileSync(join(output, relativePath)));
@@ -129,6 +161,8 @@ writeFileSync(join(output, "manifest.json"), `${JSON.stringify({
   arch: process.arch,
   launcher: `bin/${launcherName}`,
   entrypoint: "app/cli.js",
+  providerLauncher: `bin/${providerLauncherName}`,
+  providerEntrypoint: "app/provider-cli.js",
   playwright: JSON.parse(readFileSync(playwrightPackage, "utf8")).version,
 }, null, 2)}\n`);
 

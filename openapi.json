@@ -1,0 +1,48 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ChatGPT Web Provider",
+    "version": "0.1.0",
+    "description": "Experimental OpenAI-compatible local provider backed by ChatGPT Web."
+  },
+  "servers": [{ "url": "http://127.0.0.1:17842" }],
+  "components": {
+    "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer" } },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": { "error": { "type": "object", "additionalProperties": true } }
+      }
+    }
+  },
+  "paths": {
+    "/healthz": {
+      "get": { "responses": { "200": { "description": "Process health" } } }
+    },
+    "/readyz": {
+      "get": { "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Provider readiness" }, "401": { "description": "Unauthorized" } } }
+    },
+    "/v1/models": {
+      "get": { "security": [{ "bearerAuth": [] }], "responses": { "200": { "description": "Account-available ChatGPT Web models" }, "401": { "description": "Unauthorized" } } }
+    },
+    "/v1/responses": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "X-Idempotency-Key", "in": "header", "schema": { "type": "string", "minLength": 8, "maxLength": 200 } },
+          { "name": "X-ChatGPT-Web-Conversation-ID", "in": "header", "schema": { "type": "string", "minLength": 1, "maxLength": 128 } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["model", "input"], "additionalProperties": true } } } },
+        "responses": { "200": { "description": "Responses JSON or SSE stream" }, "400": { "description": "Invalid or unsupported request" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/v1/chat/completions": {
+      "post": {
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["model", "messages"], "additionalProperties": true } } } },
+        "responses": { "200": { "description": "Chat Completions JSON or SSE stream" }, "400": { "description": "Invalid or unsupported request" }, "401": { "description": "Unauthorized" } }
+      }
+    }
+  }
+}

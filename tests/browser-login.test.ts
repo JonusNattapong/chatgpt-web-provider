@@ -1,8 +1,15 @@
 import { expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { browserLoginStateExists, loginToChatGpt, loginVerificationMarkerPath } from "../src/browser-login";
+import {
+  browserLoginStateExists,
+  chatGptOnlyStorageState,
+  loginToChatGpt,
+  loginVerificationMarkerPath,
+  resolveChromeProfileDirectory,
+  stageChromeProfileForImport,
+} from "../src/browser-login";
 import { CHATGPT_TEMPORARY_CHAT_URL } from "../src/chatgpt-session";
 import { defaultConfig } from "../src/config";
 
@@ -51,5 +58,49 @@ test("a storage-state file is not trusted without a verification marker", () => 
     expect(browserLoginStateExists(config)).toBe(true);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Chrome profile import rejects path traversal", () => {
+  const root = join(tmpdir(), "chrome-user-data");
+  expect(resolveChromeProfileDirectory(root, "Default")).toBe(join(root, "Default"));
+  expect(() => resolveChromeProfileDirectory(root, "..\\Other")).toThrow("Chrome profile must be a directory name");
+  expect(() => resolveChromeProfileDirectory(root, "../Other")).toThrow("Chrome profile must be a directory name");
+});
+
+test("Chrome profile import keeps only ChatGPT and OpenAI browser state", () => {
+  const filtered = chatGptOnlyStorageState({
+    cookies: [
+      { name: "chat", value: "secret", domain: ".chatgpt.com", path: "/", expires: -1, httpOnly: true, secure: true, sameSite: "Lax" },
+      { name: "auth", value: "secret", domain: "auth.openai.com", path: "/", expires: -1, httpOnly: true, secure: true, sameSite: "Lax" },
+      { name: "unrelated", value: "secret", domain: ".example.com", path: "/", expires: -1, httpOnly: true, secure: true, sameSite: "Lax" },
+    ],
+    origins: [
+      { origin: "https://chatgpt.com", localStorage: [{ name: "setting", value: "value" }] },
+      { origin: "https://example.com", localStorage: [{ name: "private", value: "value" }] },
+    ],
+  });
+  expect(filtered.cookies.map(cookie => cookie.domain)).toEqual([".chatgpt.com", "auth.openai.com"]);
+  expect(filtered.origins.map(origin => origin.origin)).toEqual(["https://chatgpt.com"]);
+});
+
+test("Chrome profile import stages only bounded session prerequisites", () => {
+  const root = mkdtempSync(join(tmpdir(), "chrome-profile-source-"));
+  const staged = mkdtempSync(join(tmpdir(), "chrome-profile-staged-"));
+  try {
+    writeFileSync(join(root, "Local State"), "{}\n");
+    mkdirSync(join(root, "Default", "Network"), { recursive: true });
+    writeFileSync(join(root, "Default", "Preferences"), "{}\n");
+    writeFileSync(join(root, "Default", "Network", "Cookies"), "cookie-db");
+    writeFileSync(join(root, "Default", "History"), "history-db");
+
+    stageChromeProfileForImport(root, "Default", staged);
+
+    expect(readFileSync(join(staged, "Local State"), "utf8")).toBe("{}\n");
+    expect(readFileSync(join(staged, "Default", "Network", "Cookies"), "utf8")).toBe("cookie-db");
+    expect(existsSync(join(staged, "Default", "History"))).toBe(false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(staged, { recursive: true, force: true });
   }
 });

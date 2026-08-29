@@ -1,0 +1,18 @@
+# ChatGPT Web Provider
+
+OpenAI-compatible local HTTP provider backed by a user-authenticated ChatGPT Web browser session.
+
+Base URL: http://127.0.0.1:17842/v1
+Authentication: Bearer token from the private provider config.
+
+Endpoints:
+- GET /v1/models
+- POST /v1/responses
+- POST /v1/chat/completions
+- GET /healthz
+- GET /readyz
+
+Capabilities: text, image input, JSON responses, SSE streaming.
+Not supported: generic tools, embeddings, audio, fine-tuning, non-loopback binding.
+
+Use X-Idempotency-Key for safe retries and X-ChatGPT-Web-Conversation-ID for retained sequential browser context.

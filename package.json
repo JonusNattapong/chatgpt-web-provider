@@ -1,8 +1,8 @@
 {
-  "name": "codex-chatgpt-web",
+  "name": "chatgpt-web-provider",
   "version": "4.0.5",
   "private": true,
-  "description": "A focused local Responses bridge that runs Codex tasks through a user-authenticated ChatGPT web session.",
+  "description": "An OpenAI-compatible local model provider backed by a user-authenticated ChatGPT Web session.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/miuuyy/codex-chatgpt-web.git"
@@ -14,7 +14,8 @@
   "packageManager": "bun@1.4.0",
   "type": "module",
   "bin": {
-    "codex-chatgpt-web": "./src/cli.ts"
+    "chatgpt-web-provider": "./src/provider-cli.ts",
+    "codex-chatgpt-web-upstream": "./src/cli.ts"
   },
   "files": [
     "dist",
@@ -23,6 +24,10 @@
     "LICENSES"
   ],
   "scripts": {
+    "provider": "bun run src/provider-cli.ts",
+    "provider:init": "bun run src/provider-cli.ts init",
+    "provider:login": "bun run src/provider-cli.ts login",
+    "provider:serve": "bun run src/provider-cli.ts serve",
     "start": "bun run src/cli.ts serve",
     "setup": "bun run src/cli.ts setup",
     "doctor": "bun run src/cli.ts doctor",
