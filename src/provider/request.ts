@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { AppConfig } from "../config";
 import { formatErrorResponse } from "../bridge";
 import { readJsonRequestBody } from "../http-body";
+import { canonicalizeModelSlug } from "../chatgpt-web-models";
 import { responseRequest } from "../server";
 import type { ProviderAdapter } from "../adapters/base";
 
@@ -62,8 +63,9 @@ export function normalizeProviderResponsesRequest(
   if (Array.isArray(body.tools) && body.tools.length > 0) {
     throw new Error("Generic tool execution is not enabled in provider v1");
   }
-  if (typeof body.model !== "string" || !body.model.startsWith("chatgpt-web/")) {
-    throw new Error("model must be one of the chatgpt-web/* models returned by /v1/models");
+  const canonicalModel = canonicalizeModelSlug(body.model);
+  if (typeof canonicalModel !== "string" || !canonicalModel.startsWith("chatgpt-web/")) {
+    throw new Error("model must be one of the models returned by /v1/models");
   }
   const input = inputItems(body.input);
   let currentUser = -1;
@@ -86,6 +88,7 @@ export function normalizeProviderResponsesRequest(
     conversationId: identity.conversationId,
     body: {
       ...body,
+      model: canonicalModel,
       input,
       tools: [],
       client_metadata: {

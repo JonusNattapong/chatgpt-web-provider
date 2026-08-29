@@ -226,8 +226,61 @@ const routesBySlug = new Map(
   [CHATGPT_WEB_LUNA_MODEL_ROUTE, ...CHATGPT_WEB_MODEL_ROUTES].map(route => [route.slug, route]),
 );
 
+export function canonicalizeModelSlug(modelId: unknown, reasoningEffort?: unknown): string {
+  if (typeof modelId !== "string") return "chatgpt-web/medium";
+  const normalized = modelId.toLowerCase().trim();
+  const effort = typeof reasoningEffort === "string" ? reasoningEffort.toLowerCase().trim() : undefined;
+
+  // Sol base model with dynamic effort
+  if (normalized === "sol" || normalized === "chatgpt-web/sol") {
+    if (effort === "low" || effort === "instant" || effort === "light") return "chatgpt-web/light";
+    if (effort === "high") return "chatgpt-web/high";
+    if (effort === "xhigh" || effort === "extra-high") return "chatgpt-web/extra-high";
+    if (effort === "max" || effort === "pro" || effort === "ultra") return "chatgpt-web/pro";
+    return "chatgpt-web/medium";
+  }
+
+  // Sol with explicit effort in name
+  if (normalized === "sol-low" || normalized === "sol:low" || normalized === "sol-light" || normalized === "sol-instant") {
+    return "chatgpt-web/light";
+  }
+  if (normalized === "sol-medium" || normalized === "sol:medium" || normalized === "sol-mid") {
+    return "chatgpt-web/medium";
+  }
+  if (normalized === "sol-high" || normalized === "sol:high") {
+    return "chatgpt-web/high";
+  }
+  if (normalized === "sol-extra-high" || normalized === "sol:extra-high" || normalized === "sol-xhigh") {
+    return "chatgpt-web/extra-high";
+  }
+  if (normalized === "sol-pro" || normalized === "sol:pro" || normalized === "sol-max") {
+    return "chatgpt-web/pro";
+  }
+
+  // Terra aliases
+  if (normalized === "terra" || normalized === "chatgpt-web/terra") {
+    if (effort === "high") return "chatgpt-web/high";
+    if (effort === "low" || effort === "instant") return "chatgpt-web/light";
+    return "chatgpt-web/medium";
+  }
+  if (normalized === "terra-high" || normalized === "terra:high") return "chatgpt-web/high";
+  if (normalized === "terra-low" || normalized === "terra:low") return "chatgpt-web/light";
+
+  // Luna aliases
+  if (normalized === "luna" || normalized === "chatgpt-web/luna") {
+    return "chatgpt-web/luna";
+  }
+
+  if (normalized.startsWith(CHATGPT_WEB_MODEL_PREFIX)) {
+    return normalized;
+  }
+
+  return modelId;
+}
+
 export function isChatGptWebModelSlug(modelId: string): boolean {
-  return modelId.startsWith(CHATGPT_WEB_MODEL_PREFIX);
+  const canonical = canonicalizeModelSlug(modelId);
+  return canonical.startsWith(CHATGPT_WEB_MODEL_PREFIX);
 }
 
 export function availableChatGptWebModelRoutes(
@@ -242,8 +295,10 @@ export function availableChatGptWebModelRoutes(
 export function requireChatGptWebModelRoute(
   modelId: string,
   capabilities: ChatGptWebAccountCapabilities,
+  reasoningEffort?: string,
 ): ChatGptWebModelRoute {
-  const route = routesBySlug.get(modelId);
+  const canonical = canonicalizeModelSlug(modelId, reasoningEffort);
+  const route = routesBySlug.get(canonical);
   if (!route) throw new Error(`ChatGPT web model is not enabled: ${modelId}`);
   if (route === CHATGPT_WEB_LUNA_MODEL_ROUTE) {
     if (capabilities.solAvailable) {

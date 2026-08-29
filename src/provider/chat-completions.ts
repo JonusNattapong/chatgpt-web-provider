@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AppConfig } from "../config";
 import { formatErrorResponse } from "../bridge";
 import { readJsonRequestBody } from "../http-body";
+import { canonicalizeModelSlug } from "../chatgpt-web-models";
 import { providerResponsesRequest, type ProviderAdapterFactory } from "./request";
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -53,7 +54,7 @@ export function chatCompletionsToResponses(raw: unknown): Record<string, unknown
     };
   });
   return {
-    model: body.model,
+    model: canonicalizeModelSlug(body.model, body.reasoning_effort),
     input,
     stream: body.stream === true,
     ...(typeof body.max_tokens === "number" ? { max_output_tokens: body.max_tokens } : {}),

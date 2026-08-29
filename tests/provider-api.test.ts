@@ -83,15 +83,37 @@ describe("generic provider request contract", () => {
 describe("OpenAI compatibility surfaces", () => {
   test("publishes an account-bounded model catalog without native Codex passthrough", () => {
     const catalog = providerModels(appConfig()) as { data: Array<{ id: string }> };
-    expect(catalog.data.map(model => model.id)).toEqual(["chatgpt-web/luna"]);
+    expect(catalog.data.map(model => model.id)).toEqual(["luna", "chatgpt-web/luna"]);
+
+    const solConfig = appConfig();
+    solConfig.solAvailable = true;
+    const solCatalog = providerModels(solConfig) as { data: Array<{ id: string }> };
+    expect(solCatalog.data.map(model => model.id)).toEqual([
+      "sol", "sol-high", "sol-medium", "sol-low", "terra",
+      "chatgpt-web/light", "chatgpt-web/medium", "chatgpt-web/high"
+    ]);
   });
 
-  test("maps Chat Completions messages into Responses input", () => {
+  test("maps Chat Completions messages into Responses input and canonicalizes model aliases", () => {
     const mapped = chatCompletionsToResponses({
-      model: "chatgpt-web/luna",
+      model: "sol",
+      reasoning_effort: "high",
       messages: [{ role: "system", content: "be concise" }, { role: "user", content: "hello" }],
     });
     expect(mapped.input).toHaveLength(2);
+    expect(mapped.model).toBe("chatgpt-web/high");
+
+    const mappedTerra = chatCompletionsToResponses({
+      model: "terra",
+      messages: [{ role: "user", content: "hello" }],
+    });
+    expect(mappedTerra.model).toBe("chatgpt-web/medium");
+
+    const mappedLuna = chatCompletionsToResponses({
+      model: "luna",
+      messages: [{ role: "user", content: "hello" }],
+    });
+    expect(mappedLuna.model).toBe("chatgpt-web/luna");
   });
 
   test("returns a Chat Completions-compatible response", async () => {

@@ -14,8 +14,8 @@
   "packageManager": "bun@1.4.0",
   "type": "module",
   "bin": {
-    "chatgpt-web-provider": "./src/provider-cli.ts",
-    "codex-chatgpt-web-upstream": "./src/cli.ts"
+    "cwp": "./dist/provider-cli.mjs",
+    "chatgpt-web-provider": "./dist/provider-cli.mjs"
   },
   "files": [
     "dist",
