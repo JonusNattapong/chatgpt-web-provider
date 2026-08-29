@@ -77,9 +77,16 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "ask") {
-    const prompt = process.argv.slice(3).join(" ").trim();
+    const args = process.argv.slice(3);
+    let targetModel = "sol";
+    const modelIdx = args.findIndex(a => a === "--model" || a === "-m");
+    if (modelIdx !== -1 && args[modelIdx + 1]) {
+      targetModel = args[modelIdx + 1];
+      args.splice(modelIdx, 2);
+    }
+    const prompt = args.join(" ").trim();
     if (!prompt) {
-      process.stderr.write("Usage: chatgpt-web-provider ask <your question>\n");
+      process.stderr.write("Usage: chatgpt-web-provider ask [--model sol|sol-high|terra|luna] <your question>\n");
       process.exitCode = 1;
       return;
     }
@@ -91,7 +98,7 @@ async function main(): Promise<void> {
         "authorization": `Bearer ${config.apiToken}`,
       },
       body: JSON.stringify({
-        model: "chatgpt-web/medium",
+        model: targetModel,
         stream: true,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -125,9 +132,15 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "chat") {
+    const args = process.argv.slice(3);
+    let targetModel = "sol";
+    const modelIdx = args.findIndex(a => a === "--model" || a === "-m");
+    if (modelIdx !== -1 && args[modelIdx + 1]) {
+      targetModel = args[modelIdx + 1];
+    }
     const readline = await import("node:readline/promises");
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    process.stdout.write("ChatGPT Web CLI (type 'exit' or Ctrl+C to quit)\n\n");
+    process.stdout.write(`ChatGPT Web CLI [model: ${targetModel}] (type 'exit' or Ctrl+C to quit)\n\n`);
     const conversationMessages: Array<{ role: string; content: string }> = [];
     try {
       while (true) {
@@ -144,7 +157,7 @@ async function main(): Promise<void> {
             "authorization": `Bearer ${config.apiToken}`,
           },
           body: JSON.stringify({
-            model: "chatgpt-web/medium",
+            model: targetModel,
             stream: true,
             messages: conversationMessages,
           }),
