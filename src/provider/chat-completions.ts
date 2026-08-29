@@ -66,6 +66,18 @@ export function chatCompletionsToResponses(raw: unknown): Record<string, unknown
 
 function outputText(response: Record<string, unknown>): string {
   if (!Array.isArray(response.output)) return "";
+  const finalAnswer = response.output.flatMap(item => {
+    const message = record(item);
+    if (!message || message.type !== "message" || !Array.isArray(message.content)) return [];
+    if (message.phase === "commentary") return [];
+    return message.content.flatMap(part => {
+      const content = record(part);
+      return content?.type === "output_text" && typeof content.text === "string" ? [content.text] : [];
+    });
+  }).join("");
+
+  if (finalAnswer.trim().length > 0) return finalAnswer;
+
   return response.output.flatMap(item => {
     const message = record(item);
     if (!message || message.type !== "message" || !Array.isArray(message.content)) return [];
@@ -95,6 +107,7 @@ function completionStream(response: Response, model: string): Response {
   const id = `chatcmpl_${randomUUID().replaceAll("-", "")}`;
   let buffer = "";
   let sentRole = false;
+  let inCommentary = false;
   const chunk = (delta: Record<string, unknown>, finishReason: string | null = null) =>
     `data: ${JSON.stringify({ id, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1_000), model, choices: [{ index: 0, delta, finish_reason: finishReason }] })}\n\n`;
   const stream = new ReadableStream<Uint8Array>({
@@ -116,12 +129,19 @@ function completionStream(response: Response, model: string): Response {
           if (!dataLine) continue;
           let data: Record<string, unknown> | undefined;
           try { data = record(JSON.parse(dataLine)); } catch { continue; }
-          if (event === "response.output_text.delta" && typeof data?.delta === "string") {
-            if (!sentRole) {
-              sentRole = true;
-              output.push(chunk({ role: "assistant" }));
+          if (event === "response.output_item.added") {
+            const item = record(data?.item);
+            if (item?.phase === "commentary") inCommentary = true;
+          } else if (event === "response.output_item.done") {
+            inCommentary = false;
+          } else if (event === "response.output_text.delta" && typeof data?.delta === "string") {
+            if (!inCommentary) {
+              if (!sentRole) {
+                sentRole = true;
+                output.push(chunk({ role: "assistant" }));
+              }
+              output.push(chunk({ content: data.delta }));
             }
-            output.push(chunk({ content: data.delta }));
           } else if (event === "response.completed") {
             output.push(chunk({}, "stop"), "data: [DONE]\n\n");
             controller.enqueue(encoder.encode(output.join("")));

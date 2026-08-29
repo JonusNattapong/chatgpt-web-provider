@@ -28,6 +28,8 @@
     "provider:init": "bun run src/provider-cli.ts init",
     "provider:login": "bun run src/provider-cli.ts login",
     "provider:serve": "bun run src/provider-cli.ts serve",
+    "build:provider": "bun build src/provider-cli.ts --target=node --external=playwright-core --outfile=dist/provider-cli.mjs",
+    "provider:serve:node": "node dist/provider-cli.mjs serve",
     "start": "bun run src/cli.ts serve",
     "setup": "bun run src/cli.ts setup",
     "doctor": "bun run src/cli.ts doctor",

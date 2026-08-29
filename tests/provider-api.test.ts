@@ -4,10 +4,10 @@ import type { CodexParsedRequest } from "../src/types";
 import { chatCompletionsToResponses, providerChatCompletionsRequest } from "../src/provider/chat-completions";
 import { providerModels } from "../src/provider/models";
 import { normalizeProviderResponsesRequest, providerResponsesRequest } from "../src/provider/request";
-import { startProviderServer, stopProviderServer } from "../src/provider/server";
+import { startProviderServer, stopProviderServer, type ProviderServerHandle } from "../src/provider/server";
 import type { ProviderConfig } from "../src/provider/config";
 
-const servers: Array<ReturnType<typeof Bun.serve>> = [];
+const servers: Array<ProviderServerHandle> = [];
 afterEach(async () => {
   await Promise.all(servers.splice(0).map(server => stopProviderServer(server)));
 });
